@@ -7,6 +7,8 @@ import { ToastProvider } from './components/Toast'
 import { CatalogPage } from './pages/CatalogPage'
 import { MovieDetailPage } from './pages/MovieDetailPage'
 import { MovieCreatePage, MovieEditPage, NotFoundPage } from './pages/MovieFormPages'
+import { ReviewerPage } from './pages/ReviewerPage'
+import { RoulettePage } from './pages/RoulettePage'
 
 const queryClient = createQueryClient()
 
@@ -24,6 +26,8 @@ export function AppRoutes() {
         <Route path="filmes/novo" element={<MovieCreatePage />} />
         <Route path="filmes/:id" element={<KeyedMovieDetail />} />
         <Route path="filmes/:id/editar" element={<MovieEditPage />} />
+        <Route path="sortear" element={<RoulettePage />} />
+        <Route path="avaliadores/:nome" element={<ReviewerPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>

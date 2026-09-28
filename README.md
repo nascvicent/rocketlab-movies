@@ -31,6 +31,24 @@ compartilháveis, voltar/avançar), layout responsivo, acessibilidade (slider de
 estrelas por teclado, diálogos nativos, rótulos para leitores de tela) e testes
 automatizados nas duas camadas.
 
+### Extras divertidos
+
+- **Roleta do que assistir** (`/sortear`): escolha um humor ("Quero chorar",
+  "Tensão pura", "Sessão em família"…), a duração máxima e gire; o site
+  sorteia um filme lançado, com pôster e, por padrão, conhecido (≥ 50 votos no
+  TMDB).
+- **Perfil do avaliador** (clique no nome de quem avaliou): "sua vida em horas
+  de cinema" (tempo de tela, nota média, duração média, gênero do coração,
+  diretor "oficial"), uma persona baseada no gênero favorito e **9 conquistas**
+  com barra de progresso (Cinéfilo, Garimpeiro Cult, Crítico Implacável…).
+- **Easter eggs**: avaliar *Barbie* deixa o site cor-de-rosa com corações
+  caindo; *Matrix* faz chover código verde; *Oppenheimer* dispara um clarão.
+  Respeitam a preferência do sistema por menos animações.
+
+Ideias como watchlist compartilhada, mapa de países e estatísticas por horário
+ficaram de fora: a base não tem contas de usuário, país dos filmes nem data
+real das avaliações importadas.
+
 ## Como executar
 
 Pré-requisitos: **Python 3.11+** e **Node.js 20.19+** (ou 22.12+).
@@ -84,12 +102,12 @@ para `http://localhost:8000`; para apontar para outra API, defina
 ```bash
 # backend
 cd backend
-pytest              # 45 testes: API, regras de negócio e carga de dados
+pytest              # testes da API, regras de negócio e carga de dados
 ruff check . && ruff format --check .
 
 # frontend
 cd frontend
-npm test            # 19 testes: componentes, página do catálogo e utilitários
+npm test            # testes de componentes, páginas e utilitários
 npm run typecheck && npm run lint && npm run build
 ```
 
@@ -107,6 +125,8 @@ Prefixo `/api/v1`. Contratos completos em `/docs`.
 | GET | `/movies/{id}/reviews` | Avaliações do filme, mais recentes primeiro (paginado) |
 | POST | `/movies/{id}/reviews` | Nova avaliação: `{ nome, estrelas (1–5, passos de 0,5), comentario }` |
 | DELETE | `/reviews/{id}` | Remove uma avaliação e devolve a nova média |
+| GET | `/movies/sortear` | Roleta: sorteia um filme. Parâmetros: `generos` (vários), `duracao_max`, `ano_de`, `ano_ate`, `apenas_conhecidos` |
+| GET | `/reviewers/{nome}` | Estatísticas e conquistas de um avaliador |
 | GET | `/genres` | Lista de gêneros |
 
 ## Decisões técnicas

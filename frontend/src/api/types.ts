@@ -125,3 +125,44 @@ export interface CatalogParams {
   ano_ate?: number
   ordenar?: MovieSort
 }
+
+export interface RouletteParams {
+  generos: string[]
+  duracao_max?: number
+  apenas_conhecidos: boolean
+}
+
+export interface Achievement {
+  id: string
+  titulo: string
+  descricao: string
+  icone: string
+  atual: number
+  meta: number
+  conquistada: boolean
+}
+
+export interface ReviewedMovie {
+  sk_movie_id: string
+  titulo: string
+  ano_lancamento: number | null
+  url_poster: string | null
+  nota: number
+  estrelas: number
+  comentario: string
+}
+
+export interface ReviewerProfile {
+  nome: string
+  quantidade: number
+  media_nota: number
+  media_estrelas: number
+  minutos_assistidos: number
+  duracao_media_minutos: number | null
+  genero_favorito: string | null
+  diretor_favorito: string | null
+  melhor_filme: ReviewedMovie
+  pior_filme: ReviewedMovie | null
+  conquistas: Achievement[]
+  filmes: ReviewedMovie[]
+}

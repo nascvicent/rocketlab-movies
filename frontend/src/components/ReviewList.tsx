@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 
 import { useDeleteReview, useReviews } from '../api/movies'
 import type { Review } from '../api/types'
+import { avatarColor, initials } from '../lib/avatar'
 import { formatRelativeDate } from '../lib/format'
 import { ConfirmDialog } from './ConfirmDialog'
 import { TrashIcon } from './Icons'
@@ -9,19 +11,6 @@ import { Pagination } from './Pagination'
 import { StarRating } from './Stars'
 import { EmptyState, ErrorState } from './States'
 import { useToast } from '../lib/toast'
-
-const AVATAR_COLORS = ['#ff8000', '#00e054', '#40bcf4', '#f5c518', '#e07bff', '#ff6b8b']
-
-function avatarColor(name: string): string {
-  let hash = 0
-  for (const char of name) hash = (hash * 31 + char.charCodeAt(0)) >>> 0
-  return AVATAR_COLORS[hash % AVATAR_COLORS.length]
-}
-
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/)
-  return ((parts[0]?.[0] ?? '') + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase()
-}
 
 interface ReviewListProps {
   movieId: string
@@ -71,7 +60,13 @@ export function ReviewList({ movieId, page, onPageChange }: ReviewListProps) {
             </span>
             <div>
               <div className="review__header">
-                <strong>{review.nome}</strong>
+                <Link
+                  to={`/avaliadores/${encodeURIComponent(review.nome)}`}
+                  className="review__author"
+                  title={`Ver o perfil de ${review.nome}`}
+                >
+                  {review.nome}
+                </Link>
                 <StarRating value={review.estrelas} size={14} />
                 <time dateTime={review.created_at}>{formatRelativeDate(review.created_at)}</time>
               </div>

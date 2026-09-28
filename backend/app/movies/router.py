@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
-from app.movies import service
+from app.movies import reviewers, service
 from app.movies.schemas import (
     MAX_YEAR,
     MIN_YEAR,
@@ -18,6 +18,7 @@ from app.movies.schemas import (
     RatingSummary,
     ReviewCreate,
     ReviewCreated,
+    ReviewerProfile,
     ReviewOut,
 )
 
@@ -27,6 +28,7 @@ PageNumber = Annotated[int, Query(ge=1, description="Página a partir de 1.")]
 movies_router = APIRouter()
 genres_router = APIRouter()
 reviews_router = APIRouter()
+reviewers_router = APIRouter()
 
 
 def _not_found(exc: service.NotFoundError) -> HTTPException:
@@ -61,6 +63,36 @@ async def list_movies(
         year_to=ano_ate,
         sort=ordenar,
     )
+
+
+@movies_router.get(
+    "/sortear",
+    response_model=MovieListItem,
+    summary="Sorteia um filme (roleta do que assistir)",
+)
+async def pick_random_movie(
+    session: DbSession,
+    generos: Annotated[
+        list[str], Query(description="`sk_genre_id`; basta o filme ter um deles.")
+    ] = [],  # noqa: B006 - FastAPI copia o valor padrão a cada requisição
+    duracao_max: Annotated[int | None, Query(ge=1, le=1000)] = None,
+    ano_de: Annotated[int | None, Query(ge=MIN_YEAR, le=MAX_YEAR)] = None,
+    ano_ate: Annotated[int | None, Query(ge=MIN_YEAR, le=MAX_YEAR)] = None,
+    apenas_conhecidos: Annotated[
+        bool, Query(description="Só filmes com ao menos 50 votos no TMDB.")
+    ] = True,
+) -> MovieListItem:
+    try:
+        return await service.pick_random_movie(
+            session,
+            genre_ids=generos,
+            max_runtime=duracao_max,
+            year_from=ano_de,
+            year_to=ano_ate,
+            only_known=apenas_conhecidos,
+        )
+    except service.NotFoundError as exc:
+        raise _not_found(exc) from exc
 
 
 @movies_router.post(
@@ -149,3 +181,15 @@ async def delete_review(review_id: str, session: DbSession) -> RatingSummary:
 @genres_router.get("", response_model=list[GenreOut], summary="Lista os gêneros")
 async def list_genres(session: DbSession) -> list[GenreOut]:
     return [GenreOut.model_validate(genre) for genre in await service.list_genres(session)]
+
+
+@reviewers_router.get(
+    "/{nome}",
+    response_model=ReviewerProfile,
+    summary="Estatísticas e conquistas de um avaliador",
+)
+async def get_reviewer(nome: str, session: DbSession) -> ReviewerProfile:
+    try:
+        return await reviewers.get_reviewer_profile(session, nome)
+    except service.NotFoundError as exc:
+        raise _not_found(exc) from exc

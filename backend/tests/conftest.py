@@ -52,14 +52,21 @@ async def client(
 
 
 def _movie(
-    movie_id: str, titulo: str, ano: int, popularidade: float | None, **extra: object
+    movie_id: str,
+    titulo: str,
+    ano: int,
+    popularidade: float | None,
+    duracao: int,
+    **extra: object,
 ) -> DimMovie:
     movie = DimMovie(
         sk_movie_id=movie_id,
         id_filme=f"tmdb-{movie_id}",
         titulo=titulo,
         ano_lancamento=ano,
+        duracao_minutos=duracao,
         status_filme="Lançado",
+        url_poster=f"https://img.test/{movie_id}.jpg",
         **extra,
     )
     movie.performance = FactMoviePerformance(
@@ -76,16 +83,16 @@ async def _seed(session: AsyncSession) -> None:
     )
     actor = DimPerson(sk_person_id="p-tautou", nome_pessoa="Audrey Tautou", tipo_pessoa="Ator")
 
-    amelie = _movie("m-amelie", "O Fabuloso Destino de Amélie Poulain", 2001, 50.0)
+    amelie = _movie("m-amelie", "O Fabuloso Destino de Amélie Poulain", 2001, 50.0, 122)
     amelie.genres = [comedy, drama]
     amelie.people = [director, actor]
     amelie.sinopse = "Uma garçonete em Paris."
 
     movies = [
         amelie,
-        _movie("m-matrix", "The Matrix", 1999, 90.0),
-        _movie("m-alien", "Alien", 1979, 70.0),
-        _movie("m-obscure", "Obscure Short", 2020, None),
+        _movie("m-matrix", "The Matrix", 1999, 90.0, 136),
+        _movie("m-alien", "Alien", 1979, 70.0, 117),
+        _movie("m-obscure", "Obscure Short", 2020, None, 12),
     ]
     movies[1].genres = [drama]
     session.add_all(movies)

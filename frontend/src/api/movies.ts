@@ -16,7 +16,9 @@ import type {
   RatingSummary,
   Review,
   ReviewCreated,
+  ReviewerProfile,
   ReviewInput,
+  RouletteParams,
 } from './types'
 
 // Chaves hierárquicas: invalidar ['movies'] atualiza catálogo, detalhes e avaliações.
@@ -115,5 +117,20 @@ export function useDeleteReview() {
     mutationFn: (reviewId: string) =>
       request<RatingSummary>(`/reviews/${encodeURIComponent(reviewId)}`, { method: 'DELETE' }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: movieKeys.all }),
+  })
+}
+
+/** Roleta: cada giro é uma nova requisição, então é tratado como ação, não como cache. */
+export function useRoulette() {
+  return useMutation({
+    mutationFn: (params: RouletteParams) =>
+      request<MovieListItem>('/movies/sortear', { query: { ...params } }),
+  })
+}
+
+export function useReviewer(name: string) {
+  return useQuery({
+    queryKey: [...movieKeys.all, 'reviewer', name],
+    queryFn: () => request<ReviewerProfile>(`/reviewers/${encodeURIComponent(name)}`),
   })
 }

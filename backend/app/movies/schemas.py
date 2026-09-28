@@ -246,3 +246,55 @@ class ReviewOut(BaseModel):
 class ReviewCreated(BaseModel):
     review: ReviewOut
     avaliacoes: RatingSummary
+
+
+# --------------------------------------------------------------------------- #
+# Perfil do avaliador
+# --------------------------------------------------------------------------- #
+
+
+class Achievement(BaseModel):
+    id: str
+    titulo: str
+    descricao: str
+    icone: str
+    atual: int
+    meta: int
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def conquistada(self) -> bool:
+        return self.atual >= self.meta
+
+
+class ReviewedMovie(BaseModel):
+    sk_movie_id: str
+    titulo: str
+    ano_lancamento: int | None
+    url_poster: str | None
+    nota: float
+    comentario: str
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def estrelas(self) -> float:
+        return round(self.nota / 2, 2)
+
+
+class ReviewerProfile(BaseModel):
+    nome: str
+    quantidade: int
+    media_nota: float
+    minutos_assistidos: int = Field(description="Soma da duração dos filmes avaliados.")
+    duracao_media_minutos: int | None
+    genero_favorito: str | None
+    diretor_favorito: str | None
+    melhor_filme: ReviewedMovie
+    pior_filme: ReviewedMovie | None
+    conquistas: list[Achievement]
+    filmes: list[ReviewedMovie] = Field(description="Até 60 filmes, das maiores notas às menores.")
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def media_estrelas(self) -> float:
+        return round(self.media_nota / 2, 2)

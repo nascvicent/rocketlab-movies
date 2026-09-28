@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useCallback, useState, type ReactNode } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
@@ -6,6 +6,7 @@ import { ApiError } from '../api/client'
 import { movieKeys, useDeleteMovie, useMovie } from '../api/movies'
 import type { MovieDetail, Person } from '../api/types'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { EasterEggOverlay } from '../components/EasterEggOverlay'
 import { ArrowLeftIcon, EditIcon, TrashIcon } from '../components/Icons'
 import { Poster } from '../components/Poster'
 import { RatingPanel } from '../components/RatingPanel'
@@ -14,6 +15,7 @@ import { ReviewList } from '../components/ReviewList'
 import { EmptyState, ErrorState } from '../components/States'
 import { useToast } from '../lib/toast'
 import { catalogHref } from '../lib/catalogLocation'
+import { EASTER_EGG_MESSAGES, easterEggFor, type EasterEgg } from '../lib/fun'
 import {
   formatDate,
   formatMoney,
@@ -73,6 +75,8 @@ export function MovieDetailPage() {
   const queryClient = useQueryClient()
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [reviewsPage, setReviewsPage] = useState(1)
+  const [easterEgg, setEasterEgg] = useState<EasterEgg | null>(null)
+  const clearEasterEgg = useCallback(() => setEasterEgg(null), [])
 
   if (movie.isPending) {
     return (
@@ -186,7 +190,17 @@ export function MovieDetailPage() {
               Avaliações
               <span>{pluralize(data.avaliacoes.quantidade, 'avaliação', 'avaliações')}</span>
             </h2>
-            <ReviewForm movieId={data.sk_movie_id} onCreated={() => setReviewsPage(1)} />
+            <ReviewForm
+              movieId={data.sk_movie_id}
+              onCreated={() => {
+                setReviewsPage(1)
+                const egg = easterEggFor(data.titulo)
+                if (egg) {
+                  setEasterEgg(egg)
+                  notify(EASTER_EGG_MESSAGES[egg])
+                }
+              }}
+            />
             <ReviewList movieId={data.sk_movie_id} page={reviewsPage} onPageChange={setReviewsPage} />
           </section>
 
@@ -212,6 +226,8 @@ export function MovieDetailPage() {
           </aside>
         </div>
       </div>
+
+      {easterEgg && <EasterEggOverlay kind={easterEgg} onDone={clearEasterEgg} />}
 
       <ConfirmDialog
         open={confirmingDelete}

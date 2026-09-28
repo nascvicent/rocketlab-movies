@@ -38,7 +38,7 @@ function parseError(status: number, body: unknown): ApiError {
   return new ApiError(status, `Falha na requisição (${status})`)
 }
 
-type QueryValue = string | number | undefined | null
+type QueryValue = string | number | boolean | undefined | null | (string | number)[]
 
 export async function request<T>(
   path: string,
@@ -46,7 +46,10 @@ export async function request<T>(
 ): Promise<T> {
   const url = new URL(`${API_URL}${path}`, window.location.origin)
   for (const [key, value] of Object.entries(options.query ?? {})) {
-    if (value !== undefined && value !== null && value !== '') url.searchParams.set(key, String(value))
+    // Listas viram parâmetros repetidos (?generos=a&generos=b), como o FastAPI espera.
+    for (const item of Array.isArray(value) ? value : [value]) {
+      if (item !== undefined && item !== null && item !== '') url.searchParams.append(key, String(item))
+    }
   }
 
   let response: Response

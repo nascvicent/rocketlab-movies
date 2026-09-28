@@ -6,6 +6,7 @@ avaliação é criada ou removida, permitindo ordenar o catálogo por nota sem
 agregar todas as avaliações a cada requisição.
 """
 
+import random
 from collections import Counter
 from uuid import uuid4
 
@@ -39,6 +40,8 @@ DIRECTOR = "Diretor"
 WRITER = "Roteirista"
 ACTOR = "Ator"
 MAX_CAST = 40
+# Na roleta, "conhecido" = ao menos esta quantidade de votos no TMDB (~6,6 mil filmes).
+KNOWN_MOVIE_MIN_VOTES = 50
 
 
 class NotFoundError(Exception):
@@ -243,6 +246,35 @@ async def refresh_rating_summary(session: AsyncSession, movie_id: str) -> Rating
     return RatingSummary(quantidade=quantidade, media_nota=media)
 
 
+async def _list_items(session: AsyncSession, movie_ids: list[str]) -> list[MovieListItem]:
+    """Carrega os cards dos filmes informados, preservando a ordem recebida."""
+
+    stmt = (
+        select(DimMovie, DimReview, FactMoviePerformance.popularidade)
+        .outerjoin(DimReview, DimReview.sk_movie_id == DimMovie.sk_movie_id)
+        .outerjoin(FactMoviePerformance, FactMoviePerformance.sk_movie_id == DimMovie.sk_movie_id)
+        .options(selectinload(DimMovie.genres))
+        .where(DimMovie.sk_movie_id.in_(movie_ids))
+    )
+    position = {movie_id: index for index, movie_id in enumerate(movie_ids)}
+    rows = sorted((await session.execute(stmt)).all(), key=lambda row: position[row[0].sk_movie_id])
+
+    items = [
+        MovieListItem(
+            sk_movie_id=movie.sk_movie_id,
+            titulo=movie.titulo,
+            ano_lancamento=movie.ano_lancamento,
+            duracao_minutos=movie.duracao_minutos,
+            url_poster=movie.url_poster,
+            popularidade=popularidade,
+            generos=[genre.nome_genero for genre in movie.genres],
+            avaliacoes=_summary(review),
+        )
+        for movie, review, popularidade in rows
+    ]
+    return items
+
+
 # --------------------------------------------------------------------------- #
 # Filmes
 # --------------------------------------------------------------------------- #
@@ -280,30 +312,58 @@ async def list_movies(
     ids_stmt = _apply_filters(ids_stmt, id_column, **filters)
     page_ids = list(await session.scalars(ids_stmt.limit(page_size).offset((page - 1) * page_size)))
 
-    stmt = (
-        select(DimMovie, DimReview, FactMoviePerformance.popularidade)
-        .outerjoin(DimReview, DimReview.sk_movie_id == DimMovie.sk_movie_id)
-        .outerjoin(FactMoviePerformance, FactMoviePerformance.sk_movie_id == DimMovie.sk_movie_id)
-        .options(selectinload(DimMovie.genres))
-        .where(DimMovie.sk_movie_id.in_(page_ids))
-    )
-    position = {movie_id: index for index, movie_id in enumerate(page_ids)}
-    rows = sorted((await session.execute(stmt)).all(), key=lambda row: position[row[0].sk_movie_id])
-
-    items = [
-        MovieListItem(
-            sk_movie_id=movie.sk_movie_id,
-            titulo=movie.titulo,
-            ano_lancamento=movie.ano_lancamento,
-            duracao_minutos=movie.duracao_minutos,
-            url_poster=movie.url_poster,
-            popularidade=popularidade,
-            generos=[genre.nome_genero for genre in movie.genres],
-            avaliacoes=_summary(review),
-        )
-        for movie, review, popularidade in rows
-    ]
+    items = await _list_items(session, page_ids)
     return Page(items=items, total=total, page=page, page_size=page_size)
+
+
+async def pick_random_movie(
+    session: AsyncSession,
+    *,
+    genre_ids: list[str],
+    max_runtime: int | None = None,
+    year_from: int | None = None,
+    year_to: int | None = None,
+    only_known: bool = True,
+    rng: random.Random | None = None,
+) -> MovieListItem:
+    """Sorteia um filme lançado, com pôster, que atenda aos filtros da roleta.
+
+    Qualquer um dos gêneros serve (o "humor" combina vários). O sorteio é
+    uniforme: conta os candidatos e escolhe um deslocamento aleatório.
+    """
+
+    stmt = select(DimMovie.sk_movie_id).where(
+        DimMovie.url_poster.is_not(None), DimMovie.status_filme == "Lançado"
+    )
+    if genre_ids:
+        stmt = stmt.where(
+            DimMovie.sk_movie_id.in_(
+                select(bridge_movie_genre.c.sk_movie_id).where(
+                    bridge_movie_genre.c.sk_genre_id.in_(genre_ids)
+                )
+            )
+        )
+    if max_runtime is not None:
+        stmt = stmt.where(DimMovie.duracao_minutos.between(1, max_runtime))
+    if only_known:
+        stmt = stmt.where(
+            DimMovie.sk_movie_id.in_(
+                select(FactMoviePerformance.sk_movie_id).where(
+                    FactMoviePerformance.qtd_tmdb >= KNOWN_MOVIE_MIN_VOTES
+                )
+            )
+        )
+    stmt = _apply_filters(
+        stmt, DimMovie.sk_movie_id, q=None, genre_id=None, year_from=year_from, year_to=year_to
+    )
+
+    total = await session.scalar(select(func.count()).select_from(stmt.subquery()))
+    if not total:
+        raise NotFoundError("Nenhum filme combina com esses filtros. Tente afrouxá-los.")
+    offset = (rng or random).randrange(total)
+    movie_id = await session.scalar(stmt.order_by(_rowid("dim_movies")).offset(offset).limit(1))
+    [item] = await _list_items(session, [movie_id])
+    return item
 
 
 async def get_movie_detail(session: AsyncSession, movie_id: str) -> MovieDetail:

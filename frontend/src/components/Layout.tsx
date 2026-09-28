@@ -106,6 +106,10 @@ export function Layout() {
             RocketLab Movies
           </Link>
           <SearchBar />
+          <Link to="/sortear" className="btn btn--ghost header-roulette" title="Roleta do que assistir">
+            <span aria-hidden="true">🎲</span>
+            <span className="header-roulette__label">Sortear</span>
+          </Link>
           <Link to="/filmes/novo" className="btn btn--primary header-add">
             <PlusIcon size={16} />
             <span>Adicionar filme</span>
