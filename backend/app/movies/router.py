@@ -81,8 +81,8 @@ async def pick_random_movie(
     apenas_conhecidos: Annotated[
         bool, Query(description="Só filmes com ao menos 50 votos no TMDB.")
     ] = True,
-    nota_imdb_min: Annotated[
-        float | None, Query(ge=0, le=10, description="Nota IMDb mínima.")
+    estrelas_min: Annotated[
+        float | None, Query(ge=1, le=5, description="Nota média mínima no site, em estrelas.")
     ] = None,
 ) -> MovieListItem:
     try:
@@ -93,7 +93,7 @@ async def pick_random_movie(
             year_from=ano_de,
             year_to=ano_ate,
             only_known=apenas_conhecidos,
-            min_imdb=nota_imdb_min,
+            min_stars=estrelas_min,
         )
     except service.NotFoundError as exc:
         raise _not_found(exc) from exc

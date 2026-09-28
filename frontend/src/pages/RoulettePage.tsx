@@ -11,11 +11,11 @@ import { MOODS } from '../lib/fun'
 
 const SPIN_MS = 1400
 
-const IMDB_OPTIONS = [
+const RATING_OPTIONS = [
   { value: '', label: 'Qualquer nota' },
-  { value: '6', label: '6+ no IMDb' },
-  { value: '7', label: '7+ no IMDb' },
-  { value: '8', label: '8+ no IMDb' },
+  { value: '3', label: '3+ estrelas' },
+  { value: '4', label: '4+ estrelas' },
+  { value: '4.5', label: '4,5+ estrelas' },
 ]
 
 const SPIN_PHRASES = [
@@ -46,9 +46,6 @@ function RouletteResult({ movie }: { movie: MovieListItem }) {
             .filter(Boolean)
             .join(' · ')}
         </p>
-        {movie.nota_imdb != null && (
-          <span className="imdb-badge">IMDb {movie.nota_imdb.toFixed(1).replace('.', ',')}</span>
-        )}
         {movie.avaliacoes.media_estrelas !== null && (
           <StarRating value={movie.avaliacoes.media_estrelas} size={18} />
         )}
@@ -65,7 +62,7 @@ export function RoulettePage() {
   const roulette = useRoulette()
   const [moodId, setMoodId] = useState(MOODS[0].id)
   const [maxRuntime, setMaxRuntime] = useState('')
-  const [minImdb, setMinImdb] = useState('')
+  const [minStars, setMinStars] = useState('')
   const [includeObscure, setIncludeObscure] = useState(false)
   const [spinning, setSpinning] = useState(false)
   const [phrase, setPhrase] = useState(0)
@@ -90,7 +87,7 @@ export function RoulettePage() {
       roulette.mutateAsync({
         generos: genreIds,
         duracao_max: maxRuntime ? Number(maxRuntime) : undefined,
-        nota_imdb_min: minImdb ? Number(minImdb) : undefined,
+        estrelas_min: minStars ? Number(minStars) : undefined,
         apenas_conhecidos: !includeObscure,
       }),
       minimumSpin,
@@ -150,16 +147,16 @@ export function RoulettePage() {
             </select>
           </div>
           <div className="field">
-            <label className="field__label" htmlFor="roulette-imdb">
-              Nota mínima
+            <label className="field__label" htmlFor="roulette-rating">
+              Nota mínima no site
             </label>
             <select
-              id="roulette-imdb"
+              id="roulette-rating"
               className="select"
-              value={minImdb}
-              onChange={(event) => setMinImdb(event.target.value)}
+              value={minStars}
+              onChange={(event) => setMinStars(event.target.value)}
             >
-              {IMDB_OPTIONS.map((option) => (
+              {RATING_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
