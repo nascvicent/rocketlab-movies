@@ -172,6 +172,7 @@ class MovieListItem(BaseModel):
     duracao_minutos: int | None
     url_poster: str | None
     popularidade: float | None
+    nota_imdb: float | None = None
     generos: list[str]
     avaliacoes: RatingSummary
 

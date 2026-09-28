@@ -250,7 +250,9 @@ async def _list_items(session: AsyncSession, movie_ids: list[str]) -> list[Movie
     """Carrega os cards dos filmes informados, preservando a ordem recebida."""
 
     stmt = (
-        select(DimMovie, DimReview, FactMoviePerformance.popularidade)
+        select(
+            DimMovie, DimReview, FactMoviePerformance.popularidade, FactMoviePerformance.nota_imdb
+        )
         .outerjoin(DimReview, DimReview.sk_movie_id == DimMovie.sk_movie_id)
         .outerjoin(FactMoviePerformance, FactMoviePerformance.sk_movie_id == DimMovie.sk_movie_id)
         .options(selectinload(DimMovie.genres))
@@ -267,10 +269,11 @@ async def _list_items(session: AsyncSession, movie_ids: list[str]) -> list[Movie
             duracao_minutos=movie.duracao_minutos,
             url_poster=movie.url_poster,
             popularidade=popularidade,
+            nota_imdb=nota_imdb,
             generos=[genre.nome_genero for genre in movie.genres],
             avaliacoes=_summary(review),
         )
-        for movie, review, popularidade in rows
+        for movie, review, popularidade, nota_imdb in rows
     ]
     return items
 
@@ -324,6 +327,7 @@ async def pick_random_movie(
     year_from: int | None = None,
     year_to: int | None = None,
     only_known: bool = True,
+    min_imdb: float | None = None,
     rng: random.Random | None = None,
 ) -> MovieListItem:
     """Sorteia um filme lançado, com pôster, que atenda aos filtros da roleta.
@@ -345,13 +349,14 @@ async def pick_random_movie(
         )
     if max_runtime is not None:
         stmt = stmt.where(DimMovie.duracao_minutos.between(1, max_runtime))
+    fact_filters = []
     if only_known:
+        fact_filters.append(FactMoviePerformance.qtd_tmdb >= KNOWN_MOVIE_MIN_VOTES)
+    if min_imdb is not None:
+        fact_filters.append(FactMoviePerformance.nota_imdb >= min_imdb)
+    if fact_filters:
         stmt = stmt.where(
-            DimMovie.sk_movie_id.in_(
-                select(FactMoviePerformance.sk_movie_id).where(
-                    FactMoviePerformance.qtd_tmdb >= KNOWN_MOVIE_MIN_VOTES
-                )
-            )
+            DimMovie.sk_movie_id.in_(select(FactMoviePerformance.sk_movie_id).where(*fact_filters))
         )
     stmt = _apply_filters(
         stmt, DimMovie.sk_movie_id, q=None, genre_id=None, year_from=year_from, year_to=year_to

@@ -55,6 +55,7 @@ export interface MovieListItem {
   duracao_minutos: number | null
   url_poster: string | null
   popularidade: number | null
+  nota_imdb?: number | null
   generos: string[]
   avaliacoes: RatingSummary
 }
@@ -130,6 +131,7 @@ export interface RouletteParams {
   generos: string[]
   duracao_max?: number
   apenas_conhecidos: boolean
+  nota_imdb_min?: number
 }
 
 export interface Achievement {

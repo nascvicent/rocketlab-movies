@@ -34,7 +34,8 @@ automatizados nas duas camadas.
 ### Extras divertidos
 
 - **Roleta do que assistir** (`/sortear`): escolha um humor ("Quero chorar",
-  "Tensão pura", "Sessão em família"…), a duração máxima e gire; o site
+  "Tensão pura", "Sessão em família"…), a duração máxima, a nota mínima no
+  IMDb e gire; o site
   sorteia um filme lançado, com pôster e, por padrão, conhecido (≥ 50 votos no
   TMDB).
 - **Perfil do avaliador** (clique no nome de quem avaliou): "sua vida em horas
@@ -125,7 +126,7 @@ Prefixo `/api/v1`. Contratos completos em `/docs`.
 | GET | `/movies/{id}/reviews` | Avaliações do filme, mais recentes primeiro (paginado) |
 | POST | `/movies/{id}/reviews` | Nova avaliação: `{ nome, estrelas (1–5, passos de 0,5), comentario }` |
 | DELETE | `/reviews/{id}` | Remove uma avaliação e devolve a nova média |
-| GET | `/movies/sortear` | Roleta: sorteia um filme. Parâmetros: `generos` (vários), `duracao_max`, `ano_de`, `ano_ate`, `apenas_conhecidos` |
+| GET | `/movies/sortear` | Roleta: sorteia um filme. Parâmetros: `generos` (vários), `duracao_max`, `nota_imdb_min`, `ano_de`, `ano_ate`, `apenas_conhecidos` |
 | GET | `/reviewers/{nome}` | Estatísticas e conquistas de um avaliador |
 | GET | `/genres` | Lista de gêneros |
 
