@@ -16,6 +16,7 @@ from sqlalchemy import (
     Date,
     Double,
     ForeignKey,
+    Index,
     Integer,
     Numeric,
     String,
@@ -23,8 +24,9 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
+from app.core.text import fold_text
 from app.db.base import Base
 
 
@@ -48,6 +50,7 @@ bridge_movie_genre = Table(
         String(64),
         ForeignKey("dim_genres.sk_genre_id", ondelete="CASCADE"),
         primary_key=True,
+        index=True,
     ),
 )
 
@@ -91,12 +94,20 @@ class DimMovie(Base):
     """Metadados descritivos de um filme."""
 
     __tablename__ = "dim_movies"
+    __table_args__ = (
+        Index("ix_dim_movies_lancamento", "ano_lancamento", "data_lancamento", "sk_movie_id"),
+        Index("ix_dim_movies_id_ano", "sk_movie_id", "ano_lancamento"),
+    )
 
     sk_movie_id: Mapped[str] = mapped_column(
         String(64), primary_key=True, default=generate_surrogate_key
     )
     id_filme: Mapped[str] = mapped_column(String(50), unique=True, index=True)
     titulo: Mapped[str] = mapped_column(String(500), index=True)
+    # Título em minúsculas e sem acentos, mantido automaticamente para a busca.
+    titulo_busca: Mapped[str] = mapped_column(
+        String(500), index=True, default="", server_default=""
+    )
     data_lancamento: Mapped[date | None] = mapped_column(Date, default=None)
     ano_lancamento: Mapped[int | None] = mapped_column(Integer, index=True, default=None)
     duracao_minutos: Mapped[int | None] = mapped_column(Integer, default=None)
@@ -125,6 +136,12 @@ class DimMovie(Base):
     reviews: Mapped[list["MovieReview"]] = relationship(
         back_populates="movie", cascade="all, delete-orphan", order_by="MovieReview.created_at"
     )
+
+    @validates("titulo")
+    def _sync_titulo_busca(self, key: str, value: str) -> str:
+        del key
+        self.titulo_busca = fold_text(value) or ""
+        return value
 
 
 class DimGenre(Base):
@@ -200,7 +217,7 @@ class FactMoviePerformance(Base):
     orcamento_brl: Mapped[Decimal | None] = mapped_column(Numeric(18, 2), default=None)
     receita_brl: Mapped[Decimal | None] = mapped_column(Numeric(18, 2), default=None)
     lucro_brl: Mapped[Decimal] = mapped_column(Numeric(18, 2), default=0)
-    popularidade: Mapped[float | None] = mapped_column(Double, default=None)
+    popularidade: Mapped[float | None] = mapped_column(Double, index=True, default=None)
     nota_tmdb: Mapped[float | None] = mapped_column(Double, default=None)
     qtd_tmdb: Mapped[int | None] = mapped_column(Integer, default=None)
     nota_imdb: Mapped[float | None] = mapped_column(Double, default=None)
@@ -233,6 +250,9 @@ class DimReview(Base):
     """Resumo consolidado de avaliações por filme."""
 
     __tablename__ = "dim_reviews"
+    __table_args__ = (
+        Index("ix_dim_reviews_ranking", "nota_media_usuarios", "qtd_avaliacoes_usuarios"),
+    )
 
     sk_review_id: Mapped[str] = mapped_column(
         String(64), primary_key=True, default=generate_surrogate_key
